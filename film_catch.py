@@ -1,6 +1,7 @@
 import requests
 import pymysql
 import sqlite3
+import re
 from random import randint
 from bs4 import BeautifulSoup
 from lxml import etree
@@ -18,11 +19,21 @@ cursor = conn.cursor()
 # cursor.execute('''DROP TABLE film_info;''')       # 每次清空数据表
 # conn.commit()
 cursor.execute('''CREATE TABLE if not exists film_info
-                (name text, download text)''')
+                (`电影名` text, 
+                `上映年份` int,
+                `地区/产地` text,
+                `类别` text,
+                `字幕类型` text,
+                `下载链接` text)''')
 conn.commit()
 
 film_url_list = []  # 存储二级子页面url
-for i in range(1, 241):
+obj_year = re.compile(r'◎年　　代　(?P<film_year>.*?)<br />', re.S) # 年份
+obj_region = re.compile(r'(◎产　　地　|◎国　　家　)(?P<film_region>.*?)<br />', re.S)   # 产地
+obj_category = re.compile(r'◎类　　别　(?P<film_category>.*?)<br />', re.S) # 类别
+obj_subtitle = re.compile(r'◎字　　幕　(?P<film_subtitle>.*?)<br />', re.S) # 字幕
+
+for i in range(3, 241):
     print("进入第",str(i),"页")
     url = "https://www.dydytt.net/html/gndy/dyzz/list_23_"+str(i)+".html"    # 一级页面
     resp = requests.get(url, headers=agent, verify=False)
@@ -41,23 +52,40 @@ for i in range(1, 241):
         use_bs = BeautifulSoup(sec_resp.text, 'html.parser')
         sec_html = etree.HTML(sec_resp.text)
         name = sec_html.xpath('//div[@class="title_all"]/h1/font/text()')    # 找电影名
+        try:
+            year = obj_year.search(sec_resp.text).group('film_year')   # 找上映年份
+        except AttributeError:
+            year = ""
+        try:
+            region = obj_region.search(sec_resp.text).group('film_region')   # 找产地
+        except AttributeError:
+            region = ""
+        try:
+            category = obj_category.search(sec_resp.text).group('film_category') # 类别
+        except AttributeError:
+            category = ""
+        try:
+            subtitle = obj_subtitle.search(sec_resp.text).group('film_subtitle')   # 字幕
+        except AttributeError:
+            subtitle = ""
 
         try:
-            download = use_bs.find("span").find("a").get("href")    # 找磁力链
+            download_url = use_bs.find("span").find("a").get("href")    # 找磁力链
         except AttributeError:
-            download = use_bs.find("span").find("p").find("a").get("href")  # 找磁力链
+            download_url = use_bs.find("span").find("p").find("a").get("href")  # 找磁力链
         except:
             continue
-        if download is None or download[:4] == "http":
+        if download_url is None or download_url[:4] == "http":
             try:
                 pre_download = use_bs.find("td", style="WORD-WRAP: break-word").find("a")
-                download = pre_download.text
+                download_url = pre_download.text
             except:
                 continue
 
-        for tmp in name:
-            print(tmp, "->的下载链接：", download)
-            cursor.execute("INSERT INTO film_info values ('%s', '%s')" % (tmp, download))
+        for name_tmp in name:
+            print(name_tmp)
+            cursor.execute("INSERT INTO film_info values ('%s','%s','%s','%s','%s','%s')" 
+                            % (name_tmp, year, region, category, subtitle, download_url))
             conn.commit()
 
         sleep(randint(1, 2))
