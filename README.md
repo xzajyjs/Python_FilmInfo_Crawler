@@ -8,7 +8,8 @@
 
 ## 使用方式
 
->  首先安装包依赖： `requests`、 `pymysql` 、`sqlite3`、`random` 、 `bs4`、`lxml`、`time`、 `re`
+>  首先安装包依赖：  
+>  ```pip install -r requirements.txt```
 
 ### 方式一、mysql存储
 
@@ -57,8 +58,8 @@ conn = sqlite3.connect("xxx.db")	# 填写本地数据库文件。如不存在会
 
 ## Notice:
 
-- 运行过程中会有warning，不要慌，是关闭了验证的缘故。
-- 全过程跑完大概需要三小时左右，可挂在服务器上后台跑(如不怕被封ip后期可以改进一下做多线程)。
+- 运行过程中会有warning，不要慌，是关闭了https验证的缘故。
+- 虽然是多线程，但为了防止被封ip全过程跑完大概仍需要接近20分钟
 - 盗版天堂的资源会经常更新，可设置crontab定时器每个月爬一次
 
 

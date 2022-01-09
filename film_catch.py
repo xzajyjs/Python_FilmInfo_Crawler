@@ -1,15 +1,27 @@
+# -*-encoding: UTF-8-*-
+# !/usr/bin/python3
+import random
+import time
 import requests
 import pymysql
 import sqlite3
 import re
-from random import randint
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 from lxml import etree
-from time import sleep
 
-agent = {
-    "User-Agent": "Mozilla/5.0 (iPad; CPU OS 11_0) AppleWebKit/604.1.34 (KHTML, like Gecko) Version/11.0 Mobile/15A5341f Safari/604.1"
-}
+all_film_info = []
+
+agent = [
+    "Mozilla/5.0 (iPad; CPU OS 11_0) AppleWebKit/604.1.34 (KHTML, like Gecko) Version/11.0 Mobile/15A5341f Safari/604.1",
+    "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
+    "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/534.16 (KHTML, like Gecko) Chrome/10.0.648.133 Safari/534.16",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_0) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11"
+]
+
+lock = threading.Lock()
 
 conn = pymysql.connect(host='xxxxx',
                        user='xxxxx',
@@ -19,77 +31,95 @@ cursor = conn.cursor()
 # cursor.execute('''DROP TABLE film_info;''')       # 每次清空数据表
 # conn.commit()
 cursor.execute('''CREATE TABLE if not exists film_info
-                (`电影名` text, 
-                `上映年份` int,
-                `地区/产地` text,
-                `类别` text,
-                `字幕类型` text,
+                (`名称` text, 
+                `年份` int,
+                `地区` text,
+                `类型` text,
+                `字幕` text,
                 `下载链接` text)''')
 conn.commit()
 
-film_url_list = []  # 存储二级子页面url
-obj_year = re.compile(r'◎年　　代　(?P<film_year>.*?)<br />', re.S) # 年份
-obj_region = re.compile(r'(◎产　　地　|◎国　　家　)(?P<film_region>.*?)<br />', re.S)   # 产地
-obj_category = re.compile(r'◎类　　别　(?P<film_category>.*?)<br />', re.S) # 类别
-obj_subtitle = re.compile(r'◎字　　幕　(?P<film_subtitle>.*?)<br />', re.S) # 字幕
+obj_year = re.compile(r'◎年　　代　(?P<film_year>.*?)<br />', re.S)  # 年份
+obj_region = re.compile(r'(◎产　　地　|◎国　　家　)(?P<film_region>.*?)<br />', re.S)  # 产地
+obj_category = re.compile(r'◎类　　别　(?P<film_category>.*?)<br />', re.S)  # 类别
+obj_subtitle = re.compile(r'◎字　　幕　(?P<film_subtitle>.*?)<br />', re.S)  # 字幕
 
-for i in range(3, 241):
-    print("进入第",str(i),"页")
-    url = "https://www.dydytt.net/html/gndy/dyzz/list_23_"+str(i)+".html"    # 一级页面
-    resp = requests.get(url, headers=agent, verify=False)
+def download(i):
+    headers = {
+        "User-Agent": random.choice(agent)
+    }
+    film_url_list = []
+    print("进入第", str(i), "页")
+    url = "https://www.dydytt.net/html/gndy/dyzz/list_23_" + str(i) + ".html"  # 一级页面
+    resp = requests.get(url, headers=headers, verify=False)
     resp.encoding = 'gb2312'
     html = etree.HTML(resp.text)
-    content = html.xpath('//table[@class="tbspan"]')    # 找到每个子页面入口
-
-    # print(content)
+    content = html.xpath('//table[@class="tbspan"]')  # 找到每个子页面入口
+    resp.close()
     for each in content:
-        film_url_list.append("https://www.dydytt.net"+each.xpath("./tr[2]/td[2]/b/a/@href")[0])
+        film_url_list.append("https://www.dydytt.net" + each.xpath("./tr[2]/td[2]/b/a/@href")[0])
 
     for sec_url in film_url_list:
-        sec_resp = requests.get(sec_url, headers=agent, verify=False)
-        sec_resp.encoding='gb2312'
+        dic = {}
+        sec_resp = requests.get(sec_url, headers=headers, verify=False)
+        sec_resp.encoding = 'gb2312'
         # 解析
         use_bs = BeautifulSoup(sec_resp.text, 'html.parser')
         sec_html = etree.HTML(sec_resp.text)
-        name = sec_html.xpath('//div[@class="title_all"]/h1/font/text()')    # 找电影名
+        name = sec_html.xpath('//div[@class="title_all"]/h1/font/text()')  # 找电影名
+        dic['name'] = name[0]
         try:
-            year = obj_year.search(sec_resp.text).group('film_year')   # 找上映年份
+            dic['year'] = obj_year.search(sec_resp.text).group('film_year')  # 找上映年份
         except AttributeError:
-            year = ""
+            dic['year'] = ""
         try:
-            region = obj_region.search(sec_resp.text).group('film_region')   # 找产地
+            dic['region'] = obj_region.search(sec_resp.text).group('film_region')  # 找产地
         except AttributeError:
-            region = ""
+            dic['region'] = ""
         try:
-            category = obj_category.search(sec_resp.text).group('film_category') # 类别
+            dic['category'] = obj_category.search(sec_resp.text).group('film_category')  # 类别
         except AttributeError:
-            category = ""
+            dic['category'] = ""
         try:
-            subtitle = obj_subtitle.search(sec_resp.text).group('film_subtitle')   # 字幕
+            dic['subtitle'] = obj_subtitle.search(sec_resp.text).group('film_subtitle')  # 字幕
         except AttributeError:
-            subtitle = ""
-
+            dic['subtitle'] = ""
         try:
-            download_url = use_bs.find("span").find("a").get("href")    # 找磁力链
+            dic['download_url'] = use_bs.find("span").find("a").get("href")  # 找磁力链
         except AttributeError:
-            download_url = use_bs.find("span").find("p").find("a").get("href")  # 找磁力链
+            dic['download_url'] = use_bs.find("span").find("p").find("a").get("href")  # 找磁力链
         except:
             continue
-        if download_url is None or download_url[:4] == "http":
+        if dic['download_url'] is None or dic['download_url'][:4] == "http":
             try:
                 pre_download = use_bs.find("td", style="WORD-WRAP: break-word").find("a")
-                download_url = pre_download.text
+                dic['download_url'] = pre_download.text
             except:
                 continue
 
-        for name_tmp in name:
-            print(name_tmp)
-            cursor.execute("INSERT INTO film_info values ('%s','%s','%s','%s','%s','%s')" 
-                            % (name_tmp, year, region, category, subtitle, download_url))
-            conn.commit()
+        print(dic["name"])
+        lock.acquire()
+        try:
+            all_film_info.append(dic)
+        except:
+            lock.release()
+            continue
+        lock.release()
+        time.sleep(random.randint(2,4))
 
-        sleep(randint(1, 2))
-    resp.close()
-    film_url_list = []
+if __name__ == "__main__":
+    start_time = time.time()
+    with ThreadPoolExecutor(30) as t:
+        for _ in range(1, 241):
+            t.submit(download, i=_)
+    print(f"Over! total_num is {len(all_film_info)},consume_time {str(time.time()-start_time)[:5]}s"
+          f"\nNow it's inserting into database....wait.....")
+    for each in all_film_info:
+        try:
+            cursor.execute(f'''INSERT INTO film_info values ('{each["name"]}','{each["year"]}','{each["region"]}','{each["category"]}','{each["subtitle"]}','{each["download_url"]}')''')
+            conn.commit()
+        except:
+            continue
+    print(f"All over! Total size is {len(all_film_info)}, total_time is {str(time.time()-start_time)[:5]}s")
 
 conn.close()
