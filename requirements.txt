@@ -1,3 +1,4 @@
 requests==2.27.1
 bs4==0.0.1
 lxml==4.7.1
+PyMySQL==1.0.2

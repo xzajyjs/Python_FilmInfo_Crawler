@@ -1,17 +1,20 @@
 # Python爬虫 多线程爬取盗版天堂6000部电影
 
+- [x] 命令行  
+- [x] GUI
+
 ---
-
-![](show.png)
-
-![](show2.png)
 
 ## 使用方式
 
->  首先安装包依赖：  
->  ```pip install -r requirements.txt```
+### 1.[**命令行模式**](film_catch(v2.0).py)
 
-### 方式一、mysql存储
+>  首先安装包依赖：  
+>  ```pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple```
+
+---
+
+#### 方式一、mysql存储
 
 需配置mysql环境。然后修改源代码中下列几处内容(填入的数据库需要预先手动创建)
 
@@ -35,7 +38,7 @@ mysql> CREATE DATABASE xxxxx;
 
 ---
 
-### 方式二、sqlite存储
+#### 方式二、sqlite存储
 
 sqlite对比mysql 更轻量、配置更友好。在源码基础上修改如下：
 
@@ -56,11 +59,25 @@ conn = sqlite3.connect("xxx.db")	# 填写本地数据库文件。如不存在会
 
 ---
 
-## Notice:
+### **Notice**:
 
 - 运行过程中会有warning，不要慌，是关闭了https验证的缘故。
 - 虽然是多线程，但为了防止被封ip全过程跑完大概仍需要接近20分钟
 - 盗版天堂的资源会经常更新，可设置crontab定时器每个月爬一次
 
 
+---
+
+### 2.[**GUI模式**](film_catch_GUI(v3.0).py)
+
+- 暂时只支持Mysql数据库
+- 较v2.0修改了多线程逻辑
+- 注意：如果使用MySQL则`Database`必须预先手动创建，否则会报错
+
+
+![](show3.png)
+
+![](show.png)
+
+![](show2.png)
 
