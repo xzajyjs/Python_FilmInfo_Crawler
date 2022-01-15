@@ -110,7 +110,7 @@ def download(i):
 if __name__ == "__main__":
     start_time = time.time()
     with ThreadPoolExecutor(30) as t:
-        for _ in range(1, 6):
+        for _ in range(1, 241):
             t.submit(download, i=_)
     print(f"Over! total_num is {len(all_film_info)},consume_time {str(time.time()-start_time)[:5]}s"
           f"\nNow it's inserting into database....wait.....")
