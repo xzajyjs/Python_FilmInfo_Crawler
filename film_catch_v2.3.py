@@ -1,10 +1,12 @@
 # -*-encoding: UTF-8-*-
 # !/usr/bin/python3
+from ast import arg, parse
 import random
 import time
 import requests
 import pymysql
 import sqlite3
+import argparse
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -23,13 +25,25 @@ agent = [
 
 lock = threading.Lock()
 
-conn = pymysql.connect(host='xxxxx',
-                       user='xxxxx',
-                       password='xxxxx',
-                       database='xxxxx')
+parser = argparse.ArgumentParser(description='盗版天堂电影资源爬取机v2.3 --xzajyjs')
+parser.add_argument('-l','--host',help='数据库host',required=True)
+parser.add_argument('-u','--user',help='数据库用户名',required=True)
+parser.add_argument('-p','--password',help='数据库连接密码')
+parser.add_argument('-d','--database',help='数据库名',required=True)
+parser.add_argument('-c','--clear',help='清空当前数据表,默认为False',default=False)
+arg = parser.parse_args()
+
+conn = pymysql.connect(host=arg.host,
+                       user=arg.user,
+                       password=arg.password,
+                       database=arg.database)
 cursor = conn.cursor()
-# cursor.execute('''DROP TABLE film_info;''')       # 每次清空数据表
-# conn.commit()
+if arg.clear == True:
+    try:
+        cursor.execute('''DROP TABLE film_info;''')       # 每次清空数据表
+        conn.commit()
+    except:
+        print("[!] 数据表删除失败")
 cursor.execute('''CREATE TABLE if not exists film_info
                 (`名称` text, 
                 `年份` int,

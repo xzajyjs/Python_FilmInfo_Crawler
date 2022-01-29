@@ -14,48 +14,35 @@
 
 ---
 
-#### 方式一、mysql存储
+#### mysql存储
 
-需配置mysql环境。然后修改源代码中下列几处内容(填入的数据库需要预先手动创建)
-
-```python
-conn = pymysql.connect(host='xxxxx',		# 如果数据库在本地可填 localhost
-                       user='xxxxx',		# 登录mysql的用户名
-                       password='xxxxx',	# 密码
-                       database='xxxxx')	# 数据库名
+需配置mysql环境。  
+使用方式`-h`查看帮助
 ```
+usage: film_catch_v2.3.py [-h] -l HOST -u USER [-p PASSWORD] -d DATABASE
+                          [-c CLEAR]
 
+盗版天堂电影资源爬取机v2.3 --xzajyjs
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l HOST, --host HOST  数据库host
+  -u USER, --user USER  数据库用户名
+  -p PASSWORD, --password PASSWORD
+                        数据库连接密码
+  -d DATABASE, --database DATABASE
+                        数据库名
+  -c CLEAR, --clear CLEAR
+                        清空当前数据表,默认为False
 ```
+**运行前需手动创建数据库**
+```
+$ mysql -uroot -p -h [localhost]
+>>>
 mysql> CREATE DATABASE xxxxx;
 ```
 
-默认每次不会清空数据表内容。如需要取消下列两行注释
-
-```python
-# cursor.execute('''DROP TABLE film_info;''')       # 每次清空数据表
-# conn.commit()
-```
-
----
-
-#### 方式二、sqlite存储
-
-sqlite对比mysql 更轻量、配置更友好。在源码基础上修改如下：
-
-```python
-conn = pymysql.connect(host='xxxxx',
-                       user='xxxxx',
-                       password='xxxxx',
-                       database='xxxxx')
-```
-
-改成：
-
-```python
-conn = sqlite3.connect("xxx.db")	# 填写本地数据库文件。如不存在会自动创建
-```
-
-其他和方式一相同
+默认每次不会清空数据表内容。如需要则需要加上参数`-c True`
 
 ---
 
@@ -75,9 +62,9 @@ conn = sqlite3.connect("xxx.db")	# 填写本地数据库文件。如不存在会
 - 注意：如果使用MySQL则`Database`必须预先手动创建，否则会报错
 
 
-![](show3.png)
+![](pic/show3.png)
 
-![](show.png)
+![](pic/show.png)
 
-![](show2.png)
+![](pic/show2.png)
 
